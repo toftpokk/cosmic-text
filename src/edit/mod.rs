@@ -4,7 +4,7 @@ use alloc::{string::String, vec::Vec};
 use core::cmp;
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::{AttrsList, BorrowedWithFontSystem, Buffer, Cursor, FontSystem, Motion};
+use crate::{AttrsList, BorrowedWithFontSystem, Buffer, Color, Cursor, FontSystem, Motion};
 
 pub use self::editor::*;
 mod editor;
@@ -150,6 +150,15 @@ pub enum Selection {
     //TODO: Select block
 }
 
+/// Highlight Area
+#[derive(Clone, Debug)]
+pub struct HighlightArea {
+    pub start: Cursor,
+    pub end: Cursor,
+    pub color: Color,
+    pub text_color: Color,
+}
+
 /// A trait to allow easy replacements of [`Editor`], like `SyntaxEditor`
 pub trait Edit<'buffer> {
     /// Mutably borrows `self` together with an [`FontSystem`] for more convenient methods
@@ -211,6 +220,12 @@ pub trait Edit<'buffer> {
 
     /// Set the current selection position
     fn set_selection(&mut self, selection: Selection);
+
+    /// Get the highlight areas
+    fn highlight_areas(&self) -> Vec<HighlightArea>;
+
+    /// Set highlight areas
+    fn set_highlight_areas(&mut self, highlight_area: Vec<HighlightArea>);
 
     /// Get the bounds of the current selection
     //TODO: will not work with Block select

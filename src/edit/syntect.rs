@@ -9,7 +9,7 @@ use syntect::parsing::{ParseState, ScopeStack, SyntaxReference, SyntaxSet};
 
 use crate::{
     Action, AttrsList, BorrowedWithFontSystem, BufferRef, Change, Color, Cursor, Edit, Editor,
-    FontSystem, Selection, Shaping, Style, Weight,
+    FontSystem, HighlightArea, Selection, Shaping, Style, Weight,
 };
 
 pub use syntect::highlighting::Theme as SyntaxTheme;
@@ -258,6 +258,14 @@ impl<'syntax_system, 'buffer> Edit<'buffer> for SyntaxEditor<'syntax_system, 'bu
 
     fn set_selection(&mut self, selection: Selection) {
         self.editor.set_selection(selection);
+    }
+
+    fn highlight_areas(&self) -> Vec<HighlightArea> {
+        self.editor.highlight_areas()
+    }
+
+    fn set_highlight_areas(&mut self, highlight_areas: Vec<HighlightArea>) {
+        self.editor.set_highlight_areas(highlight_areas);
     }
 
     fn auto_indent(&self) -> bool {

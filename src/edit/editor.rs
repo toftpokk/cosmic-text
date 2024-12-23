@@ -12,7 +12,7 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::Color;
 use crate::{
     Action, Attrs, AttrsList, BorrowedWithFontSystem, BufferLine, BufferRef, Change, ChangeItem,
-    Cursor, Edit, FontSystem, LayoutRun, Selection, Shaping,
+    Cursor, Edit, FontSystem, HighlightArea, LayoutRun, Selection, Shaping,
 };
 
 /// A wrapper of [`Buffer`] for easy editing
@@ -22,6 +22,7 @@ pub struct Editor<'buffer> {
     cursor: Cursor,
     cursor_x_opt: Option<i32>,
     selection: Selection,
+    highlight_areas: Vec<HighlightArea>,
     cursor_moved: bool,
     auto_indent: bool,
     change: Option<Change>,
@@ -101,6 +102,7 @@ impl<'buffer> Editor<'buffer> {
             cursor: Cursor::default(),
             cursor_x_opt: None,
             selection: Selection::None,
+            highlight_areas: Vec::new(),
             cursor_moved: false,
             auto_indent: false,
             change: None,
@@ -121,7 +123,17 @@ impl<'buffer> Editor<'buffer> {
     ) where
         F: FnMut(i32, i32, u32, u32, Color),
     {
-        let selection_bounds = self.selection_bounds();
+        let mut highlight_areas = self.highlight_areas();
+
+        if let Some(selection_bounds) = self.selection_bounds() {
+            highlight_areas.push(HighlightArea {
+                start: selection_bounds.0,
+                end: selection_bounds.1,
+                color: selection_color,
+                text_color: selected_text_color,
+            });
+        }
+
         self.with_buffer(|buffer| {
             for run in buffer.layout_runs() {
                 let line_i = run.line_i;
@@ -130,7 +142,10 @@ impl<'buffer> Editor<'buffer> {
                 let line_height = run.line_height;
 
                 // Highlight selection
-                if let Some((start, end)) = selection_bounds {
+                for HighlightArea {
+                    start, end, color, ..
+                } in highlight_areas.iter()
+                {
                     if line_i >= start.line && line_i <= end.line {
                         let mut range_opt = None;
                         for glyph in run.glyphs.iter() {
@@ -158,7 +173,7 @@ impl<'buffer> Editor<'buffer> {
                                         line_top as i32,
                                         cmp::max(0, max - min) as u32,
                                         line_height as u32,
-                                        selection_color,
+                                        *color,
                                     );
                                 }
                                 c_x += c_w;
@@ -184,7 +199,7 @@ impl<'buffer> Editor<'buffer> {
                                 line_top as i32,
                                 cmp::max(0, max - min) as u32,
                                 line_height as u32,
-                                selection_color,
+                                *color,
                             );
                         }
                     }
@@ -202,14 +217,20 @@ impl<'buffer> Editor<'buffer> {
                         Some(some) => some,
                         None => text_color,
                     };
-                    if text_color != selected_text_color {
-                        if let Some((start, end)) = selection_bounds {
+                    for HighlightArea {
+                        start,
+                        end,
+                        text_color: hl_text_color,
+                        ..
+                    } in highlight_areas.iter()
+                    {
+                        if text_color != *hl_text_color {
                             if line_i >= start.line
                                 && line_i <= end.line
                                 && (start.line != line_i || glyph.end > start.index)
                                 && (end.line != line_i || glyph.start < end.index)
                             {
-                                glyph_color = selected_text_color;
+                                glyph_color = *hl_text_color;
                             }
                         }
                     }
@@ -264,6 +285,14 @@ impl<'buffer> Edit<'buffer> for Editor<'buffer> {
             self.selection = selection;
             self.with_buffer_mut(|buffer| buffer.set_redraw(true));
         }
+    }
+
+    fn highlight_areas(&self) -> Vec<HighlightArea> {
+        self.highlight_areas.clone()
+    }
+
+    fn set_highlight_areas(&mut self, hightlight_areas: Vec<HighlightArea>) {
+        self.highlight_areas = hightlight_areas;
     }
 
     fn auto_indent(&self) -> bool {

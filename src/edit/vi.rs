@@ -5,7 +5,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
     Action, AttrsList, BorrowedWithFontSystem, BufferRef, Change, Color, Cursor, Edit, FontSystem,
-    Motion, Selection, SyntaxEditor, SyntaxTheme,
+    HighlightArea, Motion, Selection, SyntaxEditor, SyntaxTheme,
 };
 
 pub use modit::{ViMode, ViParser};
@@ -540,6 +540,14 @@ impl<'syntax_system, 'buffer> Edit<'buffer> for ViEditor<'syntax_system, 'buffer
 
     fn set_selection(&mut self, selection: Selection) {
         self.editor.set_selection(selection);
+    }
+
+    fn highlight_areas(&self) -> Vec<HighlightArea> {
+        self.editor.highlight_areas()
+    }
+
+    fn set_highlight_areas(&mut self, highlight_areas: Vec<HighlightArea>) {
+        self.editor.set_highlight_areas(highlight_areas);
     }
 
     fn auto_indent(&self) -> bool {
